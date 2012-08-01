@@ -1,0 +1,74 @@
+Copyright 2012 Dmitri Pervouchine (dp@crg.eu), Lab Roderic Guigo
+Bioinformatics and Genomics Group @ Centre for Genomic Regulation
+Parc de Recerca Biomedica: Dr. Aiguader, 88, 08003 Barcelona
+
+This file is a part of the 'bam2ssj' package.
+'bam2ssj' package is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+'bam2ssj' package is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with 'bam2ssj' package.  If not, see <http://www.gnu.org/licenses/>.
+
+========================================================================
+
+INSTALLATION INSTRUCTIONS:
+
+To install, unpack, enter the directory, and type:
+make all
+
+Prerequisites:
+You need to install samtools
+Get it by svn:
+svn co https://samtools.svn.sourceforge.net/svnroot/samtools/trunk/samtools
+enter the dir and type 'make all'
+don't forget to update the SAMDIR varibale in this makefile
+
+========================================================================
+
+USAGE:
+
+./bam2ssj -cps <cps_file> -bam <bam_file> [-out <out_file>] [-maxlen <max_intron_length>] [-v suppress verbose output] [-read1 0/1] [-read2 0/1] [-g ignore gene labels] [-u unstranded]
+
+Input:	(1) sorted BAM file
+	(2) CPS (chromosome-position-strand) tab-delimited file sorted by position (chr1 100 + etc)
+
+	In order to get CPS file from gtf, use the utility gtf2cps.sh
+	Important: CPS must be sorted by position ONLY!
+
+	If the 4th column contains (a numeric) gene label then only splice junctions within the same gene will be considered (unless the '-g' option is active)
+	The utility to generate CPS with gene labels is gtf2cps_with_gene_id.sh (or update the script accordingly if you are using genome other than human)
+
+Options:
+        -maxlen imposes upper limit on intron lengths; 0 = no limit (default=0)
+        -read1 0/1, reverse complement read1 no/yes (default=yes)
+        -read2 0/1, reverse complement read2 no/yes (default=no)
+	-g ignore gene labels (column 4 of cps)
+	-u ignore strand (all reads map to the correct strand)
+
+Output:	tab-delimited, sent to stdout by default
+	Column 1 is splice_junction_id
+	Columns 2-6 are counts of 53, 5X, X3, 50, and 03 reads for the correct (annotated) strand
+	Columns 7-11 are similar counts for the incorrect (opposite to annotated) strand
+
+
+========================================================================
+
+ALGORITHM OF bam2ssj
+
+1) Sort genomic coordinates of exon boundaries (the first and the last numcleotides of the exon) by position and thore them in an array, separate for each of ref_id and strand.
+   For instance, for 22 human chromosomes there will be 44 such ordered arrays.
+2) Each array gets a non-decreasing pointer which is set to the first element of each array initially.
+3) Read sorted BAM file sequentially. 
+4) For each newcoming read, look up the arrays with the appropriate ref_id.
+5) For each strand (+ or -), increment the pointer of the corresponding array until the exon boundary to which it points is to the right of the start of the read (since there are two strands, and each read can be in 'correct' and 'incorrect' orientation with respect to the strand, you have to run it for each of the two strands).
+6) Loop up the CIGAR string and find the split coordinates, if there was 'N', or the end of the read, if there were only matches, insertions and deletions. 
+7) If there was an 'N', keep looking up the elements of the ordered array from the pointer onward until you run to the right of the rightmost coordinate of the split. You might have finished earlier if you have an upper limit on the intron length or you are restricted to one gene. If you found both ends of the intron among the elements of the array, you take the leftmost one (the donor) and run through a list attached to it looking for the acceptor pair that you find. If you found the pair, increment the counter. If you haven't found the pair, add new element to the list.
+8) If there were only matches, insertions and deletions in the read, it means that you got your read mapped to the genome. Starting from the pointer onward until you run to the right end of the read, take all exon boundaried which were on the way and increment their respective counters.
+

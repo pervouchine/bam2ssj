@@ -1,0 +1,13 @@
+v1.3, 2012/07/15
+	1) strands are treated separately (separate pointers)
+	2) bug with over-writibg the value of end and other_end fixed
+	3) summary became side-specific
+	4) added: GPL
+
+v1.4 	1) read strandness is specified in the command line; switch_reads deprecated
+	2) report read statistics on rd1/rd2 and +/- strand
+	3) index file is not needed, removed loading bai file
+	4) check whether the BAM file was sorted and if not then exit(1)
+	5) support reads with more than one N in cigar (keep counting when read spans over more than one junction)
+	6) updated statistics on read counts
+	7) soft and hard clipping + padding operations added
