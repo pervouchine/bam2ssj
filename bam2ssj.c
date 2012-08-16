@@ -44,6 +44,7 @@
 char read_type_descr[N_READ_TYPES][MAXFILEBUFFLENGTH] = { "genomic overlapping sj", "genomic non-overlapping sj (ignored)", 
  "known junctions", "unknown junctions (ignored)", "ignored by other reasons"};
 
+
 typedef struct {
     int pos;
     int label;
