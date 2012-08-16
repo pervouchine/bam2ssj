@@ -11,3 +11,7 @@ v1.4 	1) read strandness is specified in the command line; switch_reads deprecat
 	5) support reads with more than one N in cigar (keep counting when read spans over more than one junction)
 	6) updated statistics on read counts
 	7) soft and hard clipping + padding operations added
+
+v1.5	1) if stranded AND (read is both read1 and read2 OR read is neither read1 nor read2) then skip
+	2) if not stranded then report only one (correct) strand in both output file and log file
+	3) min_lemgth and max_length added as command line options

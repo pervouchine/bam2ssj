@@ -94,6 +94,7 @@ int main(int argc,char* argv[]) {
     long int n_skipped_reads = 0;
 
     int max_intron_length=0;
+    int min_intron_length=0;
     int ignore_gene_labels = 0;
     int stranded = 1;
     int rev_compl[2] = {1,0};
@@ -125,6 +126,7 @@ int main(int argc,char* argv[]) {
             if(strcmp(pc+1,"read2") == 0) sscanf(argv[++i], "%i", &rev_compl[1]);
 
 	    if(strcmp(pc+1,"lim") == 0) sscanf(argv[++i], "%i", &limit_counts);
+	    if(strcmp(pc+1,"minlen") == 0) sscanf(argv[++i], "%i", &min_intron_length);
 	    if(strcmp(pc+1,"maxlen") == 0) sscanf(argv[++i], "%i", &max_intron_length);
 
 	    if(strcmp(pc+1,"v") == 0) verbose = 0;
@@ -139,7 +141,8 @@ int main(int argc,char* argv[]) {
         	fprintf(stderr, "\tIf the 4th column contains (a numeric) gene label then only splice junctions within the same gene will be considered (unless the '-g' option is active)\n");
 		fprintf(stderr, "\tThe utility to generate CPS with gene labels is gtf2cps_with_gene_id.sh (or update the script accordingly if you are using genome other than human)\n\n");
 		fprintf(stderr, "Options:\n");
-        	fprintf(stderr, "\t-maxlen imposes upper limit on intron lengths; 0 = no limit (default=%i)",max_intron_length);
+        	fprintf(stderr, "\t-maxlen <upper limit on intron length>; 0 = no limit (default=%i)",max_intron_length);
+		fprintf(stderr, "\t-minlen <lower limit on intron length>; 0 = no limit (default=%i)",min_intron_length);
         	fprintf(stderr, "\t-read1 0/1, reverse complement read1 no/yes (default=%i)\n",rev_compl[0]);
         	fprintf(stderr, "\t-read2 0/1, reverse complement read2 no/yes (default=%i)\n",rev_compl[1]);
         	fprintf(stderr, "\t-g ignore gene labels (column 4 of cps), default=%s\n", ignore_gene_labels ? "ON" : "OFF");
@@ -285,16 +288,15 @@ int main(int argc,char* argv[]) {
     beg_prev = -1;
     while(bam_read1(bam_input, b)>=0) {
         c   = &b->core;
+	ref_id = c->tid;
+	if(ref_id<0) continue;
 
-        if((c->flag & BAM_FREAD1) && (c->flag & BAM_FREAD2) || !(c->flag & BAM_FREAD1) && !(c->flag & BAM_FREAD2)) {
+        if(stranded && ((c->flag & BAM_FREAD1) && (c->flag & BAM_FREAD2) || !(c->flag & BAM_FREAD1) && !(c->flag & BAM_FREAD2))) {
             n_skipped_reads++;
             continue;
         }
 
         cigar = bam1_cigar(b);
-	ref_id = c->tid;
-
-	if(ref_id<0) continue;
 
 	if(ref_id != ref_id_prev  && ref_id_prev >= 0) {
 	    if(contig_index[0][ref_id_prev] + contig_index[1][ref_id_prev] < contig_count[0][ref_id_prev] + contig_count[1][ref_id_prev]) 
@@ -313,7 +315,7 @@ int main(int argc,char* argv[]) {
 	s = ((c->flag & BAM_FREVERSE)>0);
 	mapped_strand = (c->flag & BAM_FREAD1) ? (s + rev_compl[0]) & 1 : (s + rev_compl[1]) & 1;
 
-	for(s = 0; s < 2; s++) {
+	for(s = 0; s < 1 + stranded; s++) {
             end = beg;
 	    side = (s == mapped_strand) ? 0 : 1;
 	    side *= stranded;
@@ -325,53 +327,54 @@ int main(int argc,char* argv[]) {
 	    	progressbar(contig_index[0][ref_id]+contig_index[1][ref_id], contig_count[0][ref_id]+contig_count[1][ref_id], header->target_name[ref_id], verbose);
 	    }
 
-            if(contig_index[s][ref_id]>=contig_count[s][ref_id]) continue;
+	    read_type = RT_OTHER;
 
-	    // check if the read is a split read and find its other end
+            if(contig_index[s][ref_id]<contig_count[s][ref_id]) {
+	    	// check if the read is a split read and find its other end
+	    	read_type = RT_GENOME;
+            	for(i = 0; i < c->n_cigar; i++) {
+	    	    offset = cigar[i] >> 4;
+	    	    switch(cigar[i] & 0x0F) {
+		    	case BAM_CMATCH: 	end += offset;  // match to the reference
+					 	break;
+		    	case BAM_CINS:		end += 0;	// insertion to the reference, pointer stays unchanged
+						break;
+		    	case BAM_CDEL:		end += offset;	// deletion from the reference (technically the same as 'N') pointer moves
+						break; 
+		    	case BAM_CREF_SKIP:	other_end = end + offset;
+						donor_id = acceptor_id = -INFTY;
+						for(j = contig_index[s][ref_id]; contig_sites[s][ref_id][j].pos <= other_end && j < contig_count[s][ref_id];j++) {
+						    if(contig_sites[s][ref_id][j].pos - end < min_intron_length && min_intron_length > 0) continue;
+						    if(contig_sites[s][ref_id][j].pos - end > max_intron_length && max_intron_length > 0) break;
+					    	    if(contig_sites[s][ref_id][j].label == contig_sites[s][ref_id][contig_index[s][ref_id]].label) {
+					    	    	if(contig_sites[s][ref_id][j].pos == end - 1)   donor_id = j;
+					    	    	if(contig_sites[s][ref_id][j].pos == other_end) acceptor_id = j;
+					    	    }
+					    	}
+						if(donor_id>0 && acceptor_id>0) {
+					    	    update_count(&contig_sites[s][ref_id][donor_id].junctions, acceptor_id, side);
+					    	    contig_sites[s][ref_id][donor_id].count5X[side]++;
+                                            	    contig_sites[s][ref_id][acceptor_id].countX3[side]++;
+					    	    read_type = RT_KJUNCT;
+						}
+						else {
+					    	    read_type = RT_UJUNCT;
+						}
+						end = other_end;
+				 		break;
+		    	case BAM_CSOFT_CLIP:
+		    	case BAM_CHARD_CLIP:
+		    	case BAM_CPAD:		break;
+		    	default:		read_type = RT_OTHER;
+	    	    }
+            	}
 
-	    read_type = RT_GENOME;
-
-            for(i = 0; i < c->n_cigar; i++) {
-	    	offset = cigar[i] >> 4;
-	    	switch(cigar[i] & 0x0F) {
-		    case BAM_CMATCH: 	end += offset;  // match to the reference
-				 	break;
-		    case BAM_CINS:	end += 0;	// insertion to the reference, pointer stays unchanged
-					break;
-		    case BAM_CDEL:	end += offset;	// deletion from the reference (technically the same as 'N') pointer moves
-					break; 
-		    case BAM_CREF_SKIP:	other_end = end + offset;
-					donor_id = acceptor_id = -INFTY;
-					for(j = contig_index[s][ref_id]; contig_sites[s][ref_id][j].pos <= other_end && j < contig_count[s][ref_id];j++) {
-					    if(contig_sites[s][ref_id][j].pos - end > max_intron_length && max_intron_length > 0) break;
-					    if(contig_sites[s][ref_id][j].label == contig_sites[s][ref_id][contig_index[s][ref_id]].label) {
-					    	if(contig_sites[s][ref_id][j].pos == end - 1)   donor_id = j;
-					    	if(contig_sites[s][ref_id][j].pos == other_end) acceptor_id = j;
-					    }
-					}
-					if(donor_id>0 && acceptor_id>0) {
-					    	update_count(&contig_sites[s][ref_id][donor_id].junctions, acceptor_id, side);
-					    	contig_sites[s][ref_id][donor_id].count5X[side]++;
-                                            	contig_sites[s][ref_id][acceptor_id].countX3[side]++;
-					    	read_type = RT_KJUNCT;
-					}
-					else {
-					    read_type = RT_UJUNCT;
-					}
-					end = other_end;
-				 	break;
-		    case BAM_CSOFT_CLIP:
-		    case BAM_CHARD_CLIP:
-		    case BAM_CPAD:	break;
-		    default:		read_type = RT_OTHER;
-	    	}
-            }
-
-	    if(read_type == RT_GENOME) {
-	        for(j=contig_index[s][ref_id]; beg<=contig_sites[s][ref_id][j].pos  && contig_sites[s][ref_id][j].pos<end && j<contig_count[s][ref_id]; j++) {
-		    contig_sites[s][ref_id][j].count00[side]++;
-		    read_type = RT_OVRLAP;
-		    k++;
+	    	if(read_type == RT_GENOME) {
+	            for(j=contig_index[s][ref_id]; beg<=contig_sites[s][ref_id][j].pos  && contig_sites[s][ref_id][j].pos<end && j<contig_count[s][ref_id]; j++) {
+		    	contig_sites[s][ref_id][j].count00[side]++;
+		    	read_type = RT_OVRLAP;
+		    	k++;
+	    	    }
 	    	}
 	    }
 
@@ -396,7 +399,7 @@ int main(int argc,char* argv[]) {
 	    	list_element* ptr = contig_sites[s][i][j].junctions;
 	    	while(ptr!=NULL) {
 		    fprintf(output_file, "%s_%i_%i_%i", header->target_name[i], contig_sites[s][i][j].pos + 1, contig_sites[s][i][ptr->id].pos - 1,(s == 0) ? 1  : -1);
-		    for(side = 0; side < 2; side++) {
+		    for(side = 0; side < 1 + stranded; side++) {
 		    	fprintf(output_file, "\t%i\t%i\t%i\t%i\t%i", ptr->count53[side], 
 			   contig_sites[s][i][j].count5X[side] - ptr->count53[side], 
 			   contig_sites[s][i][ptr->id].countX3[side] - ptr->count53[side],
@@ -433,18 +436,21 @@ int main(int argc,char* argv[]) {
 
     current = time(NULL);
     fprintf(stderr,"Read statistics for %s\n",bam_file_name);
-    for(s = 0; s < 2; s++) fprintf(stderr,"%16s", s == 0 ? "correct" : "incorrect");
-    fprintf(stderr,"\tmin/max\tstrand\n");
+    for(s = 0; s < 1 + stranded; s++) fprintf(stderr,"%16s", s == 0 ? "correct" : "incorrect");
+    if(stranded) fprintf(stderr,"\tmin/max");
+    fprintf(stderr,"\tstrand\n");
 
     for(i = 0; i < N_READ_TYPES; i++) {
-	for(s = 0; s < 2; s++) fprintf(stderr,"%16li", n_reads[i][s]);
-	fprintf(stderr,"\t%1.2lf",MIN2MAX(n_reads[i][1],n_reads[i][0]));
+	for(s = 0; s < 1 + stranded; s++) fprintf(stderr,"%16li", n_reads[i][s]);
+	if(stranded) fprintf(stderr,"\t%1.2lf",MIN2MAX(n_reads[i][1],n_reads[i][0]));
 	fprintf(stderr,"\t%s\n",read_type_descr[i]);
     }
-    for(s = 0; s < 2; s++) fprintf(stderr,"%16li", n_skipped_reads);
-    fprintf(stderr,"\t\tskipped\n");
-    for(s = 0; s < 2; s++) fprintf(stderr,"%16li", n_total_reads + n_skipped_reads);
-    fprintf(stderr,"\t\ttotal reads\n");
+    for(s = 0; s < 1 + stranded; s++) fprintf(stderr,"%16li", n_skipped_reads);
+    if(stranded) fprintf(stderr,"\t");
+    fprintf(stderr,"\tskipped\n");
+    for(s = 0; s < 1 + stranded; s++) fprintf(stderr,"%16li", n_total_reads + n_skipped_reads);
+    if(stranded) fprintf(stderr,"\t");
+    fprintf(stderr,"\ttotal reads\n");
     fprintf(stderr,"Completed in %1.0lf seconds\n",difftime(current,timestamp));
 
     return 0;
