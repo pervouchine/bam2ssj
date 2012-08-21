@@ -16,3 +16,4 @@ v1.5	1) if stranded AND (read is both read1 and read2 OR read is neither read1 n
 	2) if not stranded then report only one (correct) strand in both output file and log file
 	3) min_lemgth and max_length added as command line options
 
+v1.6	1) added example.mk, it downloads gencode v10 and one of the bam files, then runs bam2ssj

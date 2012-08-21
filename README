@@ -34,7 +34,7 @@ don't forget to update the SAMDIR varibale in this makefile
 
 USAGE:
 
-./bam2ssj -cps <cps_file> -bam <bam_file> [-out <out_file>] [-maxlen <max_intron_length>] [-v suppress verbose output] [-read1 0/1] [-read2 0/1] [-g ignore gene labels] [-u unstranded]
+./bam2ssj -cps <cps_file> -bam <bam_file> [-out <out_file>] [-maxlen <max_intr_len>] [-minlen <min_intr_len>] [-v suppress verbose] [-read1 0/1] [-read2 0/1] [-g ignore gene label] [-u unstranded]
 
 Input:	(1) sorted BAM file
 	(2) CPS (chromosome-position-strand) tab-delimited file sorted by position (chr1 100 + etc)
@@ -57,6 +57,8 @@ Output:	tab-delimited, sent to stdout by default
 	Columns 2-6 are counts of 53, 5X, X3, 50, and 03 reads for the correct (annotated) strand
 	Columns 7-11 are similar counts for the incorrect (opposite to annotated) strand
 
+To obtain a working example type 'make -f example.mk'
+The script will download all files and execute ./bam2ssj
 
 ========================================================================
 

@@ -7,7 +7,7 @@ OPTN=-lz
 
 all: bam2ssj
 
-EXPORT = bam2ssj-dp-1.5
+EXPORT = bam2ssj-dp-1.6
 
 export:
 	mkdir $(EXPORT)/

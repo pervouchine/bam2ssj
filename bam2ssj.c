@@ -111,7 +111,7 @@ int main(int argc,char* argv[]) {
 
     if(argc==1) {
 	fprintf(stderr, "BAM2SSJ is the utility for fast counting reads covering splice junctions\nCommand line use:\n");
-        fprintf(stderr, "%s -cps <cps_file> -bam <bam_file> [-out <out_file>] [-maxlen <max_intron_length>] ",argv[0]);
+        fprintf(stderr, "%s -cps <cps_file> -bam <bam_file> [-out <out_file>] [-maxlen <max_intron_length>] [-minlen <min_intron_length>] ",argv[0]);
 	fprintf(stderr, "[-v suppress verbose output] [-read1 0/1] [-read2 0/1] [-g ignore gene labels] [-u unstranded]\ntype %s -h for more info\n",argv[0]);
         exit(1);
     }
