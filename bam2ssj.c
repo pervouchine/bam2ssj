@@ -52,7 +52,7 @@ typedef struct {
     int count5X[2];
     int countX3[2];
     list_element* junctions;
-} splice_site;
+}   splice_site;
 
 int verbose=1;
 

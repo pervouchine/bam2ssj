@@ -49,7 +49,7 @@ void update_count(list_element **pptr, int id, int side) {
     }
 }
 
-void destroy_list(list_element *ptr) {
+void destroy_list(list_element *ptr) { 
     list_element *next;
     while(ptr!=NULL) {
         next = ptr->next;
