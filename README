@@ -20,15 +20,17 @@ along with 'bam2ssj' package.  If not, see <http://www.gnu.org/licenses/>.
 
 INSTALLATION INSTRUCTIONS:
 
-To install, unpack, enter the directory, and type:
+To install, enter the directory and type:
 make all
 
 Prerequisites:
-You need to install samtools
-Get it by svn:
-svn co https://samtools.svn.sourceforge.net/svnroot/samtools/trunk/samtools
-enter the dir and type 'make all'
-don't forget to update the SAMDIR varibale in this makefile
+	You need to install samtools
+
+	Get it by svn:
+	svn co https://samtools.svn.sourceforge.net/svnroot/samtools/trunk/samtools
+	enter the directory and type 'make all'
+
+(!)	don't forget to update the SAMDIR varibale in makefile
 
 ========================================================================
 
@@ -57,8 +59,9 @@ Output:	tab-delimited, sent to stdout by default
 	Columns 2-6 are counts of 53, 5X, X3, 50, and 03 reads for the correct (annotated) strand
 	Columns 7-11 are similar counts for the incorrect (opposite to annotated) strand
 
-To obtain a working example type 'make -f example.mk'
-The script will download all files and execute ./bam2ssj
+Example:
+	To obtain a working example type 'make -f example.mk'
+	The script will download all necessary files and execute the pipeline
 
 ========================================================================
 
