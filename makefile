@@ -2,7 +2,6 @@ SAMDIR=~/samtools/
 GCC=gcc
 OPTN=-lz
 
-
 .PHONY: all
 
 all: bam2ssj
