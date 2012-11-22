@@ -39,6 +39,8 @@
 
 #define MIN2MAX(A,B) ((A)<(B) ? (double)(A)/(B) : (double)(B)/(A))
 
+#define BAM_UNIQUE_MAP 0x800
+
 #define N_READ_TYPES 5
 
 char read_type_descr[N_READ_TYPES][MAXFILEBUFFLENGTH] = { "genomic overlapping sj", "genomic non-overlapping sj (ignored)", 
@@ -103,6 +105,7 @@ int main(int argc,char* argv[]) {
     int other_end, donor_id, acceptor_id;
 
     int *cigar;
+    int flagged = 0;
 
 
     /** reading input from the command line **/
@@ -112,7 +115,7 @@ int main(int argc,char* argv[]) {
     if(argc==1) {
 	fprintf(stderr, "BAM2SSJ is the utility for fast counting reads covering splice junctions\nCommand line use:\n");
         fprintf(stderr, "%s -cps <cps_file> -bam <bam_file> [-out <out_file>] [-maxlen <max_intron_length>] [-minlen <min_intron_length>] ",argv[0]);
-	fprintf(stderr, "[-v suppress verbose output] [-read1 0/1] [-read2 0/1] [-g ignore gene labels] [-u unstranded]\ntype %s -h for more info\n",argv[0]);
+	fprintf(stderr, "[-v suppress verbose output] [-read1 0/1] [-read2 0/1] [-g ignore gene labels] [-u unstranded] [-f count reads flagged 0x800 only]\ntype %s -h for more info\n",argv[0]);
         exit(1);
     }
 
@@ -133,6 +136,7 @@ int main(int argc,char* argv[]) {
 	    if(strcmp(pc+1,"v") == 0) verbose = 0;
 	    if(strcmp(pc+1,"g") == 0) ignore_gene_labels = 1;
 	    if(strcmp(pc+1,"u") == 0) stranded = 0;
+	    if(strcmp(pc+1,"f") == 0) flagged = 1;
 
 	    if(strcmp(pc+1,"h") ==0 ) {
 		fprintf(stderr, "Input:  (1) sorted BAM file\n");
@@ -147,7 +151,8 @@ int main(int argc,char* argv[]) {
         	fprintf(stderr, "\t-read1 0/1, reverse complement read1 no/yes (default=%i)\n",rev_compl[0]);
         	fprintf(stderr, "\t-read2 0/1, reverse complement read2 no/yes (default=%i)\n",rev_compl[1]);
         	fprintf(stderr, "\t-g ignore gene labels (column 4 of cps), default=%s\n", ignore_gene_labels ? "ON" : "OFF");
-        	fprintf(stderr, "\t-u ignore strand (all reads map to the correct strand), default=%s\n\n", stranded ? "OFF" : "ON");
+        	fprintf(stderr, "\t-u ignore strand (all reads map to the correct strand), default=%s\n", stranded ? "OFF" : "ON");
+		fprintf(stderr, "\t-f count reads flagged 0x800 only (uniquely mapped reads), default=%s\n", flagged ? "ON" : "OFF");
 		fprintf(stderr, "Output: tab-delimited  (default=stdout)\n");
         	fprintf(stderr, "\tColumn 1 is splice_junction_id\n");
         	fprintf(stderr, "\tColumns 2-6 are counts of 53, 5X, X3, 50, and 03 reads for the correct (annotated) strand\n");
@@ -186,6 +191,10 @@ int main(int argc,char* argv[]) {
 
     if(ignore_gene_labels) {
 	if(verbose) fprintf(stderr,"[Warning: ignoring gene labels (column 4)]\n");
+    }
+
+    if(flagged) {
+	if(verbose) fprintf(stderr,"[Warning: only look at reads flagged 0x800\n");
     }
 
     if(verbose) {
@@ -292,6 +301,11 @@ int main(int argc,char* argv[]) {
 	ref_id = c->tid;
 	if(ref_id<0) continue;
 
+	if(flagged && (c->flag & 0x800 == 0)) {
+	    n_skipped_reads++;
+	    continue;
+	}
+
         if(stranded && ((c->flag & BAM_FREAD1) && (c->flag & BAM_FREAD2) || !(c->flag & BAM_FREAD1) && !(c->flag & BAM_FREAD2))) {
             n_skipped_reads++;
             continue;
@@ -304,6 +318,11 @@ int main(int argc,char* argv[]) {
 		progressbar(1,1,header->target_name[ref_id_prev], verbose);
 	    beg_prev = -1;
 	}
+	if(ref_id < ref_id_prev) {
+	    fprintf(stderr,"BAM file wasn't sorted, exiting\n");
+            exit(1);
+	}
+
 	ref_id_prev = ref_id;
 
 	beg = c->pos + 1;

@@ -36,7 +36,7 @@ Prerequisites:
 
 USAGE:
 
-./bam2ssj -cps <cps_file> -bam <bam_file> [-out <out_file>] [-maxlen <max_intr_len>] [-minlen <min_intr_len>] [-v suppress verbose] [-read1 0/1] [-read2 0/1] [-g ignore gene label] [-u unstranded]
+./bam2ssj -cps <cps_file> -bam <bam_file> [-out <out_file>] [-maxlen <max_intr_len>] [-minlen <min_intr_len>] [-v suppress verbose] [-read1 0/1] [-read2 0/1] [-g] [-u] [-f]
 
 Input:	(1) sorted BAM file
 	(2) CPS (chromosome-position-strand) tab-delimited file sorted by position (chr1 100 + etc)
@@ -53,6 +53,7 @@ Options:
         -read2 0/1, reverse complement read2 no/yes (default=no)
 	-g ignore gene labels (column 4 of cps)
 	-u ignore strand (all reads map to the correct strand)
+	-f count reads flagged 0x800 only (uniquely mapped reads), default=no
 
 Output:	tab-delimited, sent to stdout by default
 	Column 1 is splice_junction_id
