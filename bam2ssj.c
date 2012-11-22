@@ -165,7 +165,7 @@ int main(int argc,char* argv[]) {
 
     if(bam_file_name[0]==0) {
 	fprintf(stderr,"Bam not specified, exiting\n");
-	exit(1);
+	exit(1); 
     }
 
     if(cps_file_name[0]==0) {

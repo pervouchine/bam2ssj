@@ -34,7 +34,7 @@ Prerequisites:
 
 ========================================================================
 
-USAGE:
+USAGE: 
 
 ./bam2ssj -cps <cps_file> -bam <bam_file> [-out <out_file>] [-maxlen <max_intr_len>] [-minlen <min_intr_len>] [-v suppress verbose] [-read1 0/1] [-read2 0/1] [-g] [-u] [-f]
 
