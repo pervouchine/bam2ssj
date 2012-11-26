@@ -194,7 +194,7 @@ int main(int argc,char* argv[]) {
     }
 
     if(flagged) {
-	if(verbose) fprintf(stderr,"[Warning: only look at reads flagged 0x800\n");
+	if(verbose) fprintf(stderr,"[Warning: only look at reads flagged 0x800]\n");
     }
 
     if(verbose) {
