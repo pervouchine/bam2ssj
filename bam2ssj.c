@@ -152,7 +152,7 @@ int main(int argc,char* argv[]) {
         	fprintf(stderr, "\t-read2 0/1, reverse complement read2 no/yes (default=%i)\n",rev_compl[1]);
         	fprintf(stderr, "\t-g ignore gene labels (column 4 of cps), default=%s\n", ignore_gene_labels ? "ON" : "OFF");
         	fprintf(stderr, "\t-u ignore strand (all reads map to the correct strand), default=%s\n", stranded ? "OFF" : "ON");
-		fprintf(stderr, "\t-f count reads flagged 0x800 only (uniquely mapped reads), default=%s\n", flagged ? "ON" : "OFF");
+		fprintf(stderr, "\t-f count only reads that are flagged 0x800 (uniquely mapped reads), default=%s\n", flagged ? "ON" : "OFF");
 		fprintf(stderr, "Output: tab-delimited  (default=stdout)\n");
         	fprintf(stderr, "\tColumn 1 is splice_junction_id\n");
         	fprintf(stderr, "\tColumns 2-6 are counts of 53, 5X, X3, 50, and 03 reads for the correct (annotated) strand\n");
