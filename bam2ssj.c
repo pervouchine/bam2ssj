@@ -372,7 +372,7 @@ int main(int argc,char* argv[]) {
 						break; 
 		    	case BAM_CREF_SKIP:	other_end = end + offset;
 						donor_id = acceptor_id = -INFTY;
-						if(end - beg < margin || i == c->n_cigar-1) break;
+						if(end - beg < margin) break;
 						if(the_end - other_end < margin) break;
 						for(j = contig_index[s][ref_id]; contig_sites[s][ref_id][j].pos <= other_end && j < contig_count[s][ref_id];j++) {
 						    if(contig_sites[s][ref_id][j].pos - end < min_intron_length && min_intron_length > 0) continue;
