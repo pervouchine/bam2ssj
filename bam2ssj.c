@@ -102,10 +102,11 @@ int main(int argc,char* argv[]) {
     int stranded = 1;
     int rev_compl[2] = {1,0};
 
-    int other_end, donor_id, acceptor_id;
+    int other_end, the_end, donor_id, acceptor_id;
 
     int *cigar;
     int flagged = 0;
+    int margin = 1;
 
 
     /** reading input from the command line **/
@@ -114,7 +115,7 @@ int main(int argc,char* argv[]) {
 
     if(argc==1) {
 	fprintf(stderr, "BAM2SSJ is the utility for fast counting reads covering splice junctions\nCommand line use:\n");
-        fprintf(stderr, "%s -cps <cps_file> -bam <bam_file> [-out <out_file>] [-maxlen <max_intron_length>] [-minlen <min_intron_length>] ",argv[0]);
+        fprintf(stderr, "%s -cps <cps_file> -bam <bam_file> [-out <out_file>] [-maxlen <max_intron_length>] [-minlen <min_intron_length>] [-margin <length>] ",argv[0]);
 	fprintf(stderr, "[-v suppress verbose output] [-read1 0/1] [-read2 0/1] [-g ignore gene labels] [-u unstranded] [-f count reads flagged 0x800 only]\ntype %s -h for more info\n",argv[0]);
         exit(1);
     }
@@ -132,6 +133,7 @@ int main(int argc,char* argv[]) {
 	    if(strcmp(pc+1,"lim") == 0) sscanf(argv[++i], "%i", &limit_counts);
 	    if(strcmp(pc+1,"minlen") == 0) sscanf(argv[++i], "%i", &min_intron_length);
 	    if(strcmp(pc+1,"maxlen") == 0) sscanf(argv[++i], "%i", &max_intron_length);
+	    if(strcmp(pc+1,"margin") == 0) sscanf(argv[++i], "%i", &margin);
 
 	    if(strcmp(pc+1,"v") == 0) verbose = 0;
 	    if(strcmp(pc+1,"g") == 0) ignore_gene_labels = 1;
@@ -146,8 +148,9 @@ int main(int argc,char* argv[]) {
         	fprintf(stderr, "\tIf the 4th column contains (a numeric) gene label then only splice junctions within the same gene will be considered (unless the '-g' option is active)\n");
 		fprintf(stderr, "\tThe utility to generate CPS with gene labels is gtf2cps_with_gene_id.sh (or update the script accordingly if you are using genome other than human)\n\n");
 		fprintf(stderr, "Options:\n");
-        	fprintf(stderr, "\t-maxlen <upper limit on intron length>; 0 = no limit (default=%i)",max_intron_length);
-		fprintf(stderr, "\t-minlen <lower limit on intron length>; 0 = no limit (default=%i)",min_intron_length);
+        	fprintf(stderr, "\t-maxlen <upper limit on intron length>; 0 = no limit (default=%i)\n",max_intron_length);
+		fprintf(stderr, "\t-minlen <lower limit on intron length>; 0 = no limit (default=%i)\n",min_intron_length);
+		fprintf(stderr, "\t-margin <length> minimum number of flanking nucleotides in the read in order to support SJ or cover EB, (default=%i)\n",margin);
         	fprintf(stderr, "\t-read1 0/1, reverse complement read1 no/yes (default=%i)\n",rev_compl[0]);
         	fprintf(stderr, "\t-read2 0/1, reverse complement read2 no/yes (default=%i)\n",rev_compl[1]);
         	fprintf(stderr, "\t-g ignore gene labels (column 4 of cps), default=%s\n", ignore_gene_labels ? "ON" : "OFF");
@@ -195,6 +198,10 @@ int main(int argc,char* argv[]) {
 
     if(flagged) {
 	if(verbose) fprintf(stderr,"[Warning: only look at reads flagged 0x800]\n");
+    }
+
+    if(margin>0) {
+	if(verbose) fprintf(stderr,"[Warning: read margin set to %i]\n", margin);
     }
 
     if(verbose) {
@@ -335,6 +342,8 @@ int main(int argc,char* argv[]) {
 	s = ((c->flag & BAM_FREVERSE)>0);
 	mapped_strand = (c->flag & BAM_FREAD1) ? (s + rev_compl[0]) & 1 : (s + rev_compl[1]) & 1;
 
+	the_end = bam_calend(c, cigar);
+
 	for(s = 0; s < 1 + stranded; s++) {
             end = beg;
 	    side = (s == mapped_strand) ? 0 : 1;
@@ -363,6 +372,8 @@ int main(int argc,char* argv[]) {
 						break; 
 		    	case BAM_CREF_SKIP:	other_end = end + offset;
 						donor_id = acceptor_id = -INFTY;
+						if(end - beg < margin || i == c->n_cigar-1) break;
+						if(the_end - other_end < margin) break;
 						for(j = contig_index[s][ref_id]; contig_sites[s][ref_id][j].pos <= other_end && j < contig_count[s][ref_id];j++) {
 						    if(contig_sites[s][ref_id][j].pos - end < min_intron_length && min_intron_length > 0) continue;
 						    if(contig_sites[s][ref_id][j].pos - end > max_intron_length && max_intron_length > 0) break;
@@ -390,7 +401,7 @@ int main(int argc,char* argv[]) {
             	}
 
 	    	if(read_type == RT_GENOME) {
-	            for(j=contig_index[s][ref_id]; beg<contig_sites[s][ref_id][j].pos  && contig_sites[s][ref_id][j].pos + 1 < end && j<contig_count[s][ref_id]; j++) {
+	            for(j=contig_index[s][ref_id]; beg + margin <= contig_sites[s][ref_id][j].pos  && contig_sites[s][ref_id][j].pos < end - margin && j<contig_count[s][ref_id]; j++) {
 		    	contig_sites[s][ref_id][j].count00[side]++;
 		    	read_type = RT_OVRLAP;
 		    	k++;

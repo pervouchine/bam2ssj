@@ -16,7 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with 'bam2ssj' package.  If not, see <http://www.gnu.org/licenses/>.
 
-========================================================================
+================================================================================================================================================
 
 INSTALLATION INSTRUCTIONS:
 
@@ -32,13 +32,14 @@ Prerequisites:
 
 (!)	don't forget to update the SAMDIR varibale in makefile
 
-========================================================================
+================================================================================================================================================
 
 USAGE: 
 
 ./bam2ssj -cps <cps_file> -bam <bam_file> [-out <out_file>] [-maxlen <max_intr_len>] [-minlen <min_intr_len>] [-v suppress verbose] [-read1 0/1] [-read2 0/1] [-g] [-u] [-f]
 
-Input:	(1) sorted BAM file
+
+Input:  (1) sorted BAM file
 	(2) CPS (chromosome-position-strand) tab-delimited file sorted by position (chr1 100 + etc)
 
 	In order to get CPS file from gtf, use the utility gtf2cps.sh
@@ -48,18 +49,21 @@ Input:	(1) sorted BAM file
 	The utility to generate CPS with gene labels is gtf2cps_with_gene_id.sh (or update the script accordingly if you are using genome other than human)
 
 Options:
-        -maxlen imposes upper limit on intron lengths; 0 = no limit (default=0)
-        -read1 0/1, reverse complement read1 no/yes (default=yes)
-        -read2 0/1, reverse complement read2 no/yes (default=no)
-	-g ignore gene labels (column 4 of cps)
-	-u ignore strand (all reads map to the correct strand)
-	-f count reads flagged 0x800 only (uniquely mapped reads), default=no
+	-maxlen <upper limit on intron length>; 0 = no limit (default=0)
+	-minlen <lower limit on intron length>; 0 = no limit (default=0)
+	-margin <length> minimum number of flanking nucleotides in the read in order to support SJ or cover EB, (default=1)
+	-read1 0/1, reverse complement read1 no/yes (default=1)
+	-read2 0/1, reverse complement read2 no/yes (default=0)
+	-g ignore gene labels (column 4 of cps), default=OFF
+	-u ignore strand (all reads map to the correct strand), default=OFF
+	-f count only reads that are flagged 0x800 (uniquely mapped reads), default=OFF
 
 Output:	tab-delimited, sent to stdout by default
 	Column 1 is splice_junction_id
 	Columns 2-6 are counts of 53, 5X, X3, 50, and 03 reads for the correct (annotated) strand
 	Columns 7-11 are similar counts for the incorrect (opposite to annotated) strand
 
+================================================================================================================================================
 Comment on the notation:
 	Suppose you have a splice junction between exon boundaries D and A, where D is a donor splice site (5'-SS) and A is an acceptor splice site (3'-SS).
 
@@ -85,7 +89,7 @@ Example:
 	To obtain a working example type 'make -f example.mk'
 	The script will download all necessary files and execute the pipeline
 
-========================================================================
+================================================================================================================================================
 
 ALGORITHM OF bam2ssj
 

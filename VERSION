@@ -18,3 +18,6 @@ v1.5	1) if stranded AND (read is both read1 and read2 OR read is neither read1 n
 
 v1.6	1) added example.mk, it downloads gencode v10 and one of the bam files, then runs bam2ssj
 	2) cleaned up the readme file
+
+v1.7 	1) added contraint on flagged reads
+	2) important: added margin for supporting and covering reads
