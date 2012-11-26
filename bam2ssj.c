@@ -106,7 +106,7 @@ int main(int argc,char* argv[]) {
 
     int *cigar;
     int flagged = 0;
-    int margin = 1;
+    int margin = 4;
 
 
     /** reading input from the command line **/
