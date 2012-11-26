@@ -60,6 +60,27 @@ Output:	tab-delimited, sent to stdout by default
 	Columns 2-6 are counts of 53, 5X, X3, 50, and 03 reads for the correct (annotated) strand
 	Columns 7-11 are similar counts for the incorrect (opposite to annotated) strand
 
+Comment on the notation:
+	Suppose you have a splice junction between exon boundaries D and A, where D is a donor splice site (5'-SS) and A is an acceptor splice site (3'-SS).
+
+	The number in column 2 (denoted by 53) is the number of reads supporting SJ from D to A.
+	The number in column 3 (denoted by 5X) is the number of reads supporting SJ from D to any 
+	    other acceptor site A', NOT including A ($\sum\limits_{A'{\ne}A}n(D,A')$)
+	The number in column 4 (denoted by X3) is the number of reads supporting SJ from any 
+	    other donor site D', NOT including D, to A ($\sum\limits_{D'{\ne}D}n(D',A)$)
+	The number in column 5 (denoted by 50) is the number of reads that cover D (i.e., overlap it and go into the intron by at least 1 nt)
+	The number in column 6 (denoted by 03) is the number of reads that cover A
+
+	That is,
+	psi_5 = column_2/(column_2+column_3)
+	psi_3 = column_2/(column_2+column_4)
+
+	theta_5 = (column_2+column_3)/(column_2+column_3+column_5)
+	theta_3 = (column_2+column_4)/(column_2+column_4+column_6)
+
+	You might want to impose some thresholding on counts in each of the column in order to get rid of low-confidence values such as psi=1/(1+1)=0.5
+	We find it is necessary to require that the denominator in psi_5, psi_3, theta_5, and theta_3, i.e., is greater than 15.
+
 Example:
 	To obtain a working example type 'make -f example.mk'
 	The script will download all necessary files and execute the pipeline

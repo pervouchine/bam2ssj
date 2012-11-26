@@ -301,7 +301,7 @@ int main(int argc,char* argv[]) {
 	ref_id = c->tid;
 	if(ref_id<0) continue;
 
-	if(flagged && (c->flag & 0x800 == 0)) {
+	if(flagged && ((c->flag & 0x800) == 0)) {
 	    n_skipped_reads++;
 	    continue;
 	}
