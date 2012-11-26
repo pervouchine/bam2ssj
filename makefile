@@ -43,6 +43,3 @@ bam2ssj:	bam2ssj.c progressbar.o list.o $(SAMDIR)libbam.a
 clean:
 	rm -f -r list.o progressbar.o bam2ssj
 
-
-q:
-	./bam2ssj -bam /users/rg/jlagarde/public_html/encode/pre-DCC/wgEncodeCaltechRnaSeq/20110727_Caltech_Wold_NOT_SUBMITTED/H1hescR2x75Il200Rep4/H1hescR2x75Il200Rep4_12.bam -cps hg19.cps.srt -out q     

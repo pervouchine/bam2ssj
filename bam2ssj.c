@@ -390,7 +390,7 @@ int main(int argc,char* argv[]) {
             	}
 
 	    	if(read_type == RT_GENOME) {
-	            for(j=contig_index[s][ref_id]; beg<=contig_sites[s][ref_id][j].pos  && contig_sites[s][ref_id][j].pos<end && j<contig_count[s][ref_id]; j++) {
+	            for(j=contig_index[s][ref_id]; beg<contig_sites[s][ref_id][j].pos  && contig_sites[s][ref_id][j].pos + 1 < end && j<contig_count[s][ref_id]; j++) {
 		    	contig_sites[s][ref_id][j].count00[side]++;
 		    	read_type = RT_OVRLAP;
 		    	k++;
