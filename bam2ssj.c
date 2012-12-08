@@ -253,7 +253,7 @@ int main(int argc,char* argv[]) {
 	sscanf(buff, "%s %*i %c", &chr[0], &ch);
 	bam_parse_region(header, chr, &i, &beg, &end);
 	s = (ch == '+' ? 0 : 1);
-	if(i < header->n_targets) contig_count[s][i]++;
+	if(i < header->n_targets && i>=0) contig_count[s][i]++;
     }
 
     for(s = 0; s < 2; s++) {
@@ -273,7 +273,7 @@ int main(int argc,char* argv[]) {
         sscanf(buff, "%s %i %c %i", &chr[0], &pos, &ch, &label);
 	bam_parse_region(header, chr, &i, &beg, &end);
 	s = (ch == '+' ? 0 : 1);
-	if(i < header->n_targets) {
+	if(i < header->n_targets && i>=0) {
 	    if(contig_index[s][i]>0) {
 		if(pos < contig_sites[s][i][contig_index[s][i]-1].pos) {
 		    fprintf(stderr, "Splice sites weren't sorted, exiting\n");
