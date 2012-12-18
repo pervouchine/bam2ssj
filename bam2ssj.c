@@ -66,6 +66,7 @@ int main(int argc,char* argv[]) {
 
     FILE *input_file;
     FILE *output_file;
+    FILE* log_file=stderr;
 
     bamFile bam_input;
     bam_header_t *header;
@@ -76,6 +77,7 @@ int main(int argc,char* argv[]) {
     char cps_file_name[MAXFILEBUFFLENGTH]="";
     char bam_file_name[MAXFILEBUFFLENGTH]="";
     char out_file_name[MAXFILEBUFFLENGTH]="";
+    char log_file_name[MAXFILEBUFFLENGTH]="";
 
     char buff[MAXFILEBUFFLENGTH];
     char chr[MAXFILEBUFFLENGTH];
@@ -115,7 +117,7 @@ int main(int argc,char* argv[]) {
 
     if(argc==1) {
 	fprintf(stderr, "BAM2SSJ is the utility for fast counting reads covering splice junctions\nCommand line use:\n");
-        fprintf(stderr, "%s -cps <cps_file> -bam <bam_file> [-out <out_file>] [-maxlen <max_intron_length>] [-minlen <min_intron_length>] [-margin <length>] ",argv[0]);
+        fprintf(stderr, "%s -cps <cps_file> -bam <bam_file> [-out <out_file>] [-log <log_file>] [-maxlen <max_intron_length>] [-minlen <min_intron_length>] [-margin <length>] ",argv[0]);
 	fprintf(stderr, "[-v suppress verbose output] [-read1 0/1] [-read2 0/1] [-g ignore gene labels] [-u unstranded] [-f count reads flagged 0x800 only]\ntype %s -h for more info\n",argv[0]);
         exit(1);
     }
@@ -126,6 +128,7 @@ int main(int argc,char* argv[]) {
             if(strcmp(pc+1,"cps") == 0) sscanf(argv[++i], "%s", &cps_file_name[0]);
 	    if(strcmp(pc+1,"bam") == 0) sscanf(argv[++i], "%s", &bam_file_name[0]);
 	    if(strcmp(pc+1,"out") == 0) sscanf(argv[++i], "%s", &out_file_name[0]);
+            if(strcmp(pc+1,"log") == 0) sscanf(argv[++i], "%s", &log_file_name[0]);
 
             if(strcmp(pc+1,"read1") == 0) sscanf(argv[++i], "%i", &rev_compl[0]);
             if(strcmp(pc+1,"read2") == 0) sscanf(argv[++i], "%i", &rev_compl[1]);
@@ -166,48 +169,56 @@ int main(int argc,char* argv[]) {
 	}
     }
 
+    if(log_file_name[0]==0) {
+	log_file = stderr;
+    }
+    else {
+	log_file = fopen(log_file_name,"w");
+	if(log_file == NULL) log_file = stderr;
+    }
+
     if(bam_file_name[0]==0) {
-	fprintf(stderr,"Bam not specified, exiting\n");
+	fprintf(log_file,"Bam not specified, exiting\n");
 	exit(1); 
     }
 
     if(cps_file_name[0]==0) {
-        fprintf(stderr,"Input not specified, exiting\n");
+        fprintf(log_file,"Input not specified, exiting\n");
         exit(1);
     }
 
     if(out_file_name[0]==0) {
-	fprintf(stderr,"[Warning: output set to stdout]\n");
+	fprintf(log_file,"[Warning: output set to stdout]\n");
 	output_file = stdout;
     }
     else {
 	output_file = fopen(out_file_name,"w");
 	if(output_file == NULL) {
-	    fprintf(stderr,"[Warning: output set to stdout]\n");
+	    fprintf(log_file,"[Warning: output set to stdout]\n");
             output_file = stdout;
 	}
     }
 
     if(max_intron_length>0) {
-	if(verbose) fprintf(stderr,"[Warning: set max intron length=%i]\n",max_intron_length);
+	if(verbose) fprintf(log_file,"[Warning: set max intron length=%i]\n",max_intron_length);
     }
 
     if(ignore_gene_labels) {
-	if(verbose) fprintf(stderr,"[Warning: ignoring gene labels (column 4)]\n");
+	if(verbose) fprintf(log_file,"[Warning: ignoring gene labels (column 4)]\n");
     }
 
     if(flagged) {
-	if(verbose) fprintf(stderr,"[Warning: only look at reads flagged 0x800]\n");
+	if(verbose) fprintf(log_file,"[Warning: only look at reads flagged 0x800]\n");
     }
 
     if(margin>0) {
-	if(verbose) fprintf(stderr,"[Warning: read margin set to %i]\n", margin);
+	if(verbose) fprintf(log_file,"[Warning: read margin set to %i]\n", margin);
     }
 
     if(verbose) {
-	for(s = 0; s < 2; s++) if(rev_compl[s]) fprintf(stderr,"[Warning: take reverse complement of read %i]\n", s+1);
-	fprintf(stderr,"[Warning: stranded = %s]\n", stranded ? "TRUE" : "FALSE (always correct strand)");
-	if(ignore_gene_labels) fprintf(stderr,"[Warning: ignore gene labels (column 4)]\n");
+	for(s = 0; s < 2; s++) if(rev_compl[s]) fprintf(log_file,"[Warning: take reverse complement of read %i]\n", s+1);
+	fprintf(log_file,"[Warning: stranded = %s]\n", stranded ? "TRUE" : "FALSE (always correct strand)");
+	if(ignore_gene_labels) fprintf(log_file,"[Warning: ignore gene labels (column 4)]\n");
     }
 
 
@@ -219,7 +230,7 @@ int main(int argc,char* argv[]) {
     header = bam_header_read(bam_input);
 
     if(bam_input == NULL || header == NULL) {
-        fprintf(stderr,"BAM can't be opened or contains no header, exiting\n");
+        fprintf(log_file,"BAM can't be opened or contains no header, exiting\n");
         exit(1);
     }
 
@@ -227,7 +238,7 @@ int main(int argc,char* argv[]) {
 
     input_file = fopen(cps_file_name, "r");
     if(input_file == NULL) {
-	fprintf(stderr,"CPS can't be opened, exiting\n");
+	fprintf(log_file,"CPS can't be opened, exiting\n");
         exit(1);
     }
 
@@ -239,7 +250,7 @@ int main(int argc,char* argv[]) {
     	contig_sites[s] = (splice_site**) malloc(sizeof(splice_site*) * (header->n_targets + ARRAY_MARGIN));
 
     	if(contig_count[s] == NULL || contig_sites[s] == NULL || contig_index[s] == NULL) {
-	    fprintf(stderr, "Not enought memory, exiting\n");
+	    fprintf(log_file, "Not enought memory, exiting\n");
             exit(1);
     	}
     }
@@ -248,7 +259,7 @@ int main(int argc,char* argv[]) {
         for(i=0; i < header->n_targets; i++) 
 	    contig_count[s][i] = contig_index[s][i] = 0;
 
-    if(verbose) fprintf(stderr, "Reading %s pass1", cps_file_name);
+    if(verbose) fprintf(log_file, "Reading %s pass1", cps_file_name);
     while(fgets(buff, MAXFILEBUFFLENGTH, input_file)) {
 	sscanf(buff, "%s %*i %c", &chr[0], &ch);
 	bam_parse_region(header, chr, &i, &beg, &end);
@@ -260,14 +271,14 @@ int main(int argc,char* argv[]) {
     	for(i = 0;i < header->n_targets; i++) {
 	    contig_sites[s][i] = (splice_site*) malloc(sizeof(splice_site) * (contig_count[s][i] + ARRAY_MARGIN));
 	    if(contig_sites[s][i] == NULL) {
-	    	fprintf(stderr, "Not enought memory, exiting\n");
+	    	fprintf(log_file, "Not enought memory, exiting\n");
             	exit(1);
 	    }
 	}
     }
-    if(verbose) fprintf(stderr, "\n");
+    if(verbose) fprintf(log_file, "\n");
 
-    if(verbose) fprintf(stderr, "Reading %s pass2",cps_file_name);
+    if(verbose) fprintf(log_file, "Reading %s pass2",cps_file_name);
     fseek(input_file, 0, SEEK_SET);
     while(fgets(buff, MAXFILEBUFFLENGTH, input_file)) {
         sscanf(buff, "%s %i %c %i", &chr[0], &pos, &ch, &label);
@@ -276,7 +287,7 @@ int main(int argc,char* argv[]) {
 	if(i < header->n_targets && i>=0) {
 	    if(contig_index[s][i]>0) {
 		if(pos < contig_sites[s][i][contig_index[s][i]-1].pos) {
-		    fprintf(stderr, "Splice sites weren't sorted, exiting\n");
+		    fprintf(log_file, "Splice sites weren't sorted, exiting\n");
 		    exit(1);
 		}
 	    }
@@ -291,7 +302,7 @@ int main(int argc,char* argv[]) {
 	    contig_index[s][i]++;
 	}
     }
-    if(verbose) fprintf(stderr, "\n");
+    if(verbose) fprintf(log_file, "\n");
 
     for(s = 0; s < 2; s++)
     	for(i = 0;i < header->n_targets; i++) 
@@ -321,12 +332,13 @@ int main(int argc,char* argv[]) {
         cigar = bam1_cigar(b);
 
 	if(ref_id != ref_id_prev  && ref_id_prev >= 0) {
-	    if(contig_index[0][ref_id_prev] + contig_index[1][ref_id_prev] < contig_count[0][ref_id_prev] + contig_count[1][ref_id_prev]) 
-		progressbar(1,1,header->target_name[ref_id_prev], verbose);
+	    if(contig_index[0][ref_id_prev] + contig_index[1][ref_id_prev] < contig_count[0][ref_id_prev] + contig_count[1][ref_id_prev]) {
+		if(log_file==stderr) progressbar(1, 1, header->target_name[ref_id_prev], verbose);
+	    }
 	    beg_prev = -1;
 	}
 	if(ref_id < ref_id_prev) {
-	    fprintf(stderr,"BAM file wasn't sorted, exiting\n");
+	    fprintf(log_file,"BAM file wasn't sorted, exiting\n");
             exit(1);
 	}
 
@@ -334,7 +346,7 @@ int main(int argc,char* argv[]) {
 
 	beg = c->pos + 1;
 	if(beg < beg_prev) {
-	    fprintf(stderr,"BAM file wasn't sorted, exiting\n");
+	    fprintf(log_file,"BAM file wasn't sorted, exiting\n");
 	    exit(1);
 	}
 	beg_prev = beg;
@@ -353,7 +365,7 @@ int main(int argc,char* argv[]) {
 
 	    while(contig_sites[s][ref_id][contig_index[s][ref_id]].pos < beg && contig_index[s][ref_id] < contig_count[s][ref_id]) {
 		contig_index[s][ref_id]++;
-	    	progressbar(contig_index[0][ref_id]+contig_index[1][ref_id], contig_count[0][ref_id]+contig_count[1][ref_id], header->target_name[ref_id], verbose);
+	    	if(log_file==stderr) progressbar(contig_index[0][ref_id]+contig_index[1][ref_id], contig_count[0][ref_id]+contig_count[1][ref_id], header->target_name[ref_id], verbose);
 	    }
 
 	    read_type = RT_OTHER;
@@ -418,8 +430,9 @@ int main(int argc,char* argv[]) {
     }
 
     if(ref_id_prev > 0) {
-        if(contig_index[0][ref_id_prev] + contig_index[1][ref_id_prev] < contig_count[0][ref_id_prev] + contig_count[1][ref_id_prev]) 
-	    progressbar(1, 1, header->target_name[ref_id_prev], verbose);
+        if(contig_index[0][ref_id_prev] + contig_index[1][ref_id_prev] < contig_count[0][ref_id_prev] + contig_count[1][ref_id_prev]) {
+	    if(log_file==stderr) progressbar(1, 1, header->target_name[ref_id_prev], verbose);
+	}
     }
 
     /**** output here *****/
@@ -463,26 +476,26 @@ int main(int argc,char* argv[]) {
     fclose(input_file);
     fclose(output_file);
 
-    if(verbose) fprintf(stderr,"\n");
+    if(verbose) fprintf(log_file,"\n");
 
     current = time(NULL);
-    fprintf(stderr,"Read statistics for %s\n",bam_file_name);
-    for(s = 0; s < 1 + stranded; s++) fprintf(stderr,"%16s", s == 0 ? "correct" : "incorrect");
-    if(stranded) fprintf(stderr,"\tmin/max");
-    fprintf(stderr,"\tstrand\n");
+    fprintf(log_file,"Read statistics for %s\n",bam_file_name);
+    for(s = 0; s < 1 + stranded; s++) fprintf(log_file,"%16s", s == 0 ? "correct" : "incorrect");
+    if(stranded) fprintf(log_file,"\tmin/max");
+    fprintf(log_file,"\tstrand\n");
 
     for(i = 0; i < N_READ_TYPES; i++) {
-	for(s = 0; s < 1 + stranded; s++) fprintf(stderr,"%16li", n_reads[i][s]);
-	if(stranded) fprintf(stderr,"\t%1.2lf",MIN2MAX(n_reads[i][1],n_reads[i][0]));
-	fprintf(stderr,"\t%s\n",read_type_descr[i]);
+	for(s = 0; s < 1 + stranded; s++) fprintf(log_file,"%16li", n_reads[i][s]);
+	if(stranded) fprintf(log_file,"\t%1.2lf",MIN2MAX(n_reads[i][1],n_reads[i][0]));
+	fprintf(log_file,"\t%s\n",read_type_descr[i]);
     }
-    for(s = 0; s < 1 + stranded; s++) fprintf(stderr,"%16li", n_skipped_reads);
-    if(stranded) fprintf(stderr,"\t");
-    fprintf(stderr,"\tskipped\n");
-    for(s = 0; s < 1 + stranded; s++) fprintf(stderr,"%16li", n_total_reads + n_skipped_reads);
-    if(stranded) fprintf(stderr,"\t");
-    fprintf(stderr,"\ttotal reads\n");
-    fprintf(stderr,"Completed in %1.0lf seconds\n",difftime(current,timestamp));
+    for(s = 0; s < 1 + stranded; s++) fprintf(log_file,"%16li", n_skipped_reads);
+    if(stranded) fprintf(log_file,"\t");
+    fprintf(log_file,"\tskipped\n");
+    for(s = 0; s < 1 + stranded; s++) fprintf(log_file,"%16li", n_total_reads + n_skipped_reads);
+    if(stranded) fprintf(log_file,"\t");
+    fprintf(log_file,"\ttotal reads\n");
+    fprintf(log_file,"Completed in %1.0lf seconds\n",difftime(current,timestamp));
 
     return 0;
 }
