@@ -337,10 +337,11 @@ int main(int argc,char* argv[]) {
 	    }
 	    beg_prev = -1;
 	}
-	if(ref_id < ref_id_prev) {
+
+	/*if(ref_id < ref_id_prev) {
 	    fprintf(log_file,"BAM file wasn't sorted, exiting\n");
             exit(1);
-	}
+	}*/
 
 	ref_id_prev = ref_id;
 
