@@ -106,7 +106,7 @@ int main(int argc,char* argv[]) {
 
     int other_end, the_end, donor_id, acceptor_id;
 
-    int *cigar;
+    uint32_t *cigar;
     int flagged = 0;
     int margin = 4;
 
@@ -384,6 +384,7 @@ int main(int argc,char* argv[]) {
 		    	case BAM_CDEL:		end += offset;	// deletion from the reference (technically the same as 'N') pointer moves
 						break; 
 		    	case BAM_CREF_SKIP:	other_end = end + offset;
+	//printf("%s %i %i\n",chr,end,other_end);
 						donor_id = acceptor_id = -INFTY;
 						if(end - beg < margin) break;
 						if(the_end - other_end < margin) break;

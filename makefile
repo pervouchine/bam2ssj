@@ -1,10 +1,9 @@
 SAMDIR=~/samtools/
-GCC=gcc
-OPTN=-lz
+GCC=g++
 
 .PHONY: all
 
-all: bam2ssj
+all: bam2ssj sjcount
 
 EXPORT = bam2ssj-dp-1.6
 
@@ -31,15 +30,17 @@ $(SAMDIR)libbam.a:
 	exit 1	
 
 progressbar.o:	progressbar.c progressbar.h
-	gcc -c progressbar.c 
+	$(GCC) -c progressbar.c 
 
-list.o:	list.c list.h
-	gcc -c list.c
+list.o : list.c list.h
+	$(GCC) -c list.c
 
 bam2ssj:	bam2ssj.c progressbar.o list.o $(SAMDIR)libbam.a
-	$(GCC) $(OPTN) -I $(SAMDIR) bam2ssj.c progressbar.o list.o $(SAMDIR)libbam.a -o bam2ssj
+	$(GCC) -I $(SAMDIR) bam2ssj.c progressbar.o list.o $(SAMDIR)libbam.a -lz -o bam2ssj
 
+sjcount : sjcount.c progressbar.o $(SAMDIR)libbam.a
+	$(GCC) -I $(SAMDIR) sjcount.c progressbar.o $(SAMDIR)libbam.a -lz -o sjcount
 
 clean:
-	rm -f -r list.o progressbar.o bam2ssj
+	rm -f -r progressbar.o list.o bam2ssj sjcount
 
