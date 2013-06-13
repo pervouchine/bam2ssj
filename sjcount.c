@@ -201,6 +201,19 @@ int main(int argc,char* argv[]) {
 	}
     }
 
+    if(ssc_file_name[0]==0) {
+	fprintf(log_file,"[Warning: boundary output skipped]\n");
+    }
+    else {
+        ssc_file = fopen(ssc_file_name,"w");
+        if(ssc_file == NULL) {
+            fprintf(log_file,"[Warning: boundary output set to stdout]\n");
+            ssc_file = stdout;
+        } else {
+            fprintf(log_file,"[Boundary counts: >%s]\n",ssc_file_name);
+        }
+    }
+
     if(max_intron_length>0) {
 	fprintf(log_file,"[Warning: set max intron length=%i]\n", max_intron_length);
     }
@@ -305,8 +318,7 @@ int main(int argc,char* argv[]) {
 	while(ptr != NULL) {
 	    site* qtr = ptr->partner;
 	    while(qtr != NULL) {
-		//mapped_strand = qtr->count[0] > qtr->count[1] ? 0 : 1;
-		fprintf(ssj_file, "%s\t%i\t%i\t%i\t%i\n", header->target_name[i], ptr->pos, qtr->pos, qtr->count[mapped_strand], qtr->count[1-mapped_strand]);
+		fprintf(ssj_file, "%s\t%i\t%i\t%i\t%i\n", header->target_name[i], ptr->pos, qtr->pos, qtr->count[0], qtr->count[1]);
 		qtr = qtr->next;
 	    }
 	    ptr= ptr->next;
@@ -320,19 +332,10 @@ int main(int argc,char* argv[]) {
 
     //*********************************************************************************************************************//
 
-    if(ssc_file_name[0]==0) {
+    if(ssc_file == NULL) {
     	current_time = time(NULL);
     	fprintf(log_file,"Completed in %1.0lf seconds\n",difftime(current_time,timestamp));
     	return 0;
-    }
-    else {
-        ssc_file = fopen(ssc_file_name,"w");
-        if(ssc_file == NULL) {
-            fprintf(log_file,"[Warning: boundary output set to stdout]\n");
-            ssc_file = stdout;
-        } else {
-            fprintf(log_file,"[Boundary counts: >%s]\n",ssc_file_name);
-        }
     }
 
     bam_input = bam_open(bam_file_name, "r");
@@ -387,8 +390,7 @@ int main(int argc,char* argv[]) {
     for(i = 0; i < header->n_targets; i++) {
         site *qtr = root_site[i];
         while(qtr != NULL) {
-            //mapped_strand = qtr->count[0] > qtr->count[1] ? 0 : 1;
-            fprintf(ssc_file, "%s\t%i\t%i\t%i\n", header->target_name[i], qtr->pos, qtr->count[mapped_strand], qtr->count[1-mapped_strand]);
+            fprintf(ssc_file, "%s\t%i\t%i\t%i\n", header->target_name[i], qtr->pos, qtr->count[0], qtr->count[1]);
             qtr = qtr->next;
         }
     }
