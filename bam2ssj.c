@@ -316,8 +316,10 @@ int main(int argc,char* argv[]) {
     beg_prev = -1;
     while(bam_read1(bam_input, b)>=0) {
         c   = &b->core;
-	ref_id = c->tid;
-	if(ref_id<0) continue;
+        if(c->tid < 0 || c->tid >= header->n_targets) continue;
+
+        ref_id_prev = ref_id;
+        ref_id = c->tid;
 
 	if(flagged && ((c->flag & 0x800) == 0)) {
 	    n_skipped_reads++;

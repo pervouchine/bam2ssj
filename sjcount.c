@@ -77,7 +77,7 @@ void update_jnxn(junction **ptr, int beg, int end, int strand, int count) {
     	ptr = &((*ptr)->next);
     }
     if(*ptr != NULL && (*ptr)->pos == beg) {
-	update_site(&((*ptr)->partner), end, strand, count);
+	update_site(&((*ptr)->partner), end, strand, 0);
     }
     else {
         junction *next = (*ptr);
@@ -260,9 +260,10 @@ int main(int argc,char* argv[]) {
     n_reads = 0;
     while(bam_read1(bam_input, b)>=0) {
         c   = &b->core;
+	if(c->tid < 0 || c->tid >= header->n_targets) continue;
+
 	ref_id_prev = ref_id;
 	ref_id = c->tid;
-	if(ref_id<0) continue;
 
         cigar = bam1_cigar(b);
 
@@ -332,7 +333,7 @@ int main(int argc,char* argv[]) {
 
     //*********************************************************************************************************************//
 
-    if(ssc_file == NULL) {
+    if(ssc_file == NULL || ssc_file_name[0]==0) {
     	current_time = time(NULL);
     	fprintf(log_file,"Completed in %1.0lf seconds\n",difftime(current_time,timestamp));
     	return 0;
@@ -341,7 +342,7 @@ int main(int argc,char* argv[]) {
     bam_input = bam_open(bam_file_name, "r");
     header = bam_header_read(bam_input);
 
-    for(i=0; i < header->n_targets; i++) curr_site[i] = &root_site[i];
+    for(i = 0; i < header->n_targets; i++) curr_site[i] = &root_site[i];
 
     b = bam_init1();
     k = 0;
@@ -349,9 +350,10 @@ int main(int argc,char* argv[]) {
     n_reads = 0;
     while(bam_read1(bam_input, b)>=0) {
         c   = &b->core;
+        if(c->tid < 0 || c->tid >= header->n_targets) continue;
+
         ref_id_prev = ref_id;
         ref_id = c->tid;
-        if(ref_id<0) continue;
 
         cigar = bam1_cigar(b);
 
@@ -372,12 +374,33 @@ int main(int argc,char* argv[]) {
         for(;k<beg;k++) progressbar(k, header->target_len[ref_id], header->target_name[ref_id], verbose);
 
 	flag = 1;
-        for(i = 0; i < c->n_cigar; i++) if(cigar[i] & 0x0F == BAM_CREF_SKIP) flag = 0;
+    	pos = beg;
+        for(i = 0; i < c->n_cigar; i++) {
+            offset = cigar[i] >> 4;
+            switch(cigar[i] & 0x0F) {
+                case BAM_CMATCH:        pos += offset;  // match to the reference
+                                        break;
+                case BAM_CINS:          pos += 0;       // insertion to the reference, pointer stays unchanged
+					flag=0;
+                                        break;
+                case BAM_CDEL:          pos += offset;  // deletion from the reference (technically the same as 'N') pointer moves
+					flag=0;
+                                        break;
+                case BAM_CREF_SKIP:	flag=0;
+					break;
+                case BAM_CSOFT_CLIP:
+                case BAM_CHARD_CLIP:
+                case BAM_CPAD:           
+                default:		flag=0;
+					break;
+            }
+        }
+        end = pos;
 
 	if(flag) {
 	    site *qtr = (*curr_site[ref_id]);
 	    while(qtr != NULL && qtr->pos < end) {
-		if(qtr->pos > beg + margin && qtr->pos < end - margin) qtr->count[mapped_strand]++;
+		if(qtr->pos >= beg + margin && qtr->pos < end - margin) qtr->count[mapped_strand]++;
 		qtr = qtr->next;
 	    }
 	}
