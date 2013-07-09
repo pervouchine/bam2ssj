@@ -77,7 +77,7 @@ void update_jnxn(junction **ptr, int beg, int end, int strand, int count) {
     	ptr = &((*ptr)->next);
     }
     if(*ptr != NULL && (*ptr)->pos == beg) {
-	update_site(&((*ptr)->partner), end, strand, 0);
+	update_site(&((*ptr)->partner), end, strand, count);
     }
     else {
         junction *next = (*ptr);
@@ -260,10 +260,10 @@ int main(int argc,char* argv[]) {
     n_reads = 0;
     while(bam_read1(bam_input, b)>=0) {
         c   = &b->core;
-	if(c->tid < 0 || c->tid >= header->n_targets) continue;
+        if(c->tid < 0 || c->tid >= header->n_targets) continue;
 
-	ref_id_prev = ref_id;
-	ref_id = c->tid;
+        ref_id_prev = ref_id;
+        ref_id = c->tid;
 
         cigar = bam1_cigar(b);
 
@@ -342,7 +342,14 @@ int main(int argc,char* argv[]) {
     bam_input = bam_open(bam_file_name, "r");
     header = bam_header_read(bam_input);
 
-    for(i = 0; i < header->n_targets; i++) curr_site[i] = &root_site[i];
+    for(i = 0; i < header->n_targets; i++) {
+        site *qtr = root_site[i];
+        while(qtr != NULL) {
+	    qtr->count[0] = qtr->count[1] = 0;
+            qtr = qtr->next;
+        }
+	curr_site[i] = &root_site[i];
+    }
 
     b = bam_init1();
     k = 0;
@@ -381,17 +388,14 @@ int main(int argc,char* argv[]) {
                 case BAM_CMATCH:        pos += offset;  // match to the reference
                                         break;
                 case BAM_CINS:          pos += 0;       // insertion to the reference, pointer stays unchanged
-					flag=0;
                                         break;
                 case BAM_CDEL:          pos += offset;  // deletion from the reference (technically the same as 'N') pointer moves
-					flag=0;
                                         break;
-                case BAM_CREF_SKIP:	flag=0;
-					break;
+                case BAM_CREF_SKIP:
                 case BAM_CSOFT_CLIP:
                 case BAM_CHARD_CLIP:
                 case BAM_CPAD:           
-                default:		flag=0;
+                default:                flag=0;
 					break;
             }
         }
@@ -400,7 +404,7 @@ int main(int argc,char* argv[]) {
 	if(flag) {
 	    site *qtr = (*curr_site[ref_id]);
 	    while(qtr != NULL && qtr->pos < end) {
-		if(qtr->pos >= beg + margin && qtr->pos < end - margin) qtr->count[mapped_strand]++;
+		if(qtr->pos > beg + margin && qtr->pos < end - margin) qtr->count[mapped_strand]++;
 		qtr = qtr->next;
 	    }
 	}
