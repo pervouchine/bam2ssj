@@ -296,7 +296,7 @@ int main(int argc,char* argv[]) {
                                         break;
                 case BAM_CREF_SKIP:     pos += offset;
 					if(prev_pos - beg < margin) break;
-					if(end - pos < margin) break;
+					if(end - pos + 1 < margin) break;
 					if(offset < min_intron_length && min_intron_length > 0) continue;
 					if(offset > max_intron_length && max_intron_length > 0) break;
 					update_jnxn(curr_junction[ref_id], prev_pos - 1, pos, mapped_strand, 1);
@@ -399,12 +399,11 @@ int main(int argc,char* argv[]) {
 					break;
             }
         }
-        end = pos;
 
 	if(flag) {
 	    site *qtr = (*curr_site[ref_id]);
 	    while(qtr != NULL && qtr->pos < end) {
-		if(qtr->pos > beg + margin && qtr->pos < end - margin) qtr->count[mapped_strand]++;
+		if(qtr->pos >= beg + margin - 1 && qtr->pos <= end - margin + 1 ) qtr->count[mapped_strand]++;
 		qtr = qtr->next;
 	    }
 	}
