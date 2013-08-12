@@ -310,20 +310,19 @@ int main(int argc,char* argv[]) {
 
     /** analysis starts here **/
 
+
     b = bam_init1();
     k = 0;
     ref_id_prev = -1;
     beg_prev = -1;
     while(bam_read1(bam_input, b)>=0) {
-        c   = &b->core;
-        if(c->tid < 0 || c->tid >= header->n_targets) continue;
-
-        ref_id_prev = ref_id;
-        ref_id = c->tid;
+        c = &b->core;
+	ref_id = c->tid;
+	if(ref_id<0) continue;
 
 	if(flagged && ((c->flag & 0x800) == 0)) {
 	    n_skipped_reads++;
-	    continue;
+	continue;
 	}
 
         if(stranded && ((c->flag & BAM_FREAD1) && (c->flag & BAM_FREAD2) || !(c->flag & BAM_FREAD1) && !(c->flag & BAM_FREAD2))) {
@@ -333,17 +332,12 @@ int main(int argc,char* argv[]) {
 
         cigar = bam1_cigar(b);
 
-	if(ref_id != ref_id_prev  && ref_id_prev >= 0) {
+	if(ref_id != ref_id_prev && ref_id_prev >= 0) {
 	    if(contig_index[0][ref_id_prev] + contig_index[1][ref_id_prev] < contig_count[0][ref_id_prev] + contig_count[1][ref_id_prev]) {
-		if(log_file==stderr) progressbar(1, 1, header->target_name[ref_id_prev], verbose);
+	    	if(log_file==stderr) progressbar(1, 1, header->target_name[ref_id_prev], verbose);
 	    }
 	    beg_prev = -1;
 	}
-
-	/*if(ref_id < ref_id_prev) {
-	    fprintf(log_file,"BAM file wasn't sorted, exiting\n");
-            exit(1);
-	}*/
 
 	ref_id_prev = ref_id;
 
