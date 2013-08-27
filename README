@@ -30,7 +30,7 @@ Prerequisites:
 	svn co https://samtools.svn.sourceforge.net/svnroot/samtools/trunk/samtools
 	enter the directory and type 'make all'
 
-(!)	don't forget to update the SAMDIR varibale in makefile
+(!)	don't forget to update the SAMDIR varibale in the makefile
 
 ================================================================================================================================================
 
@@ -63,8 +63,26 @@ Output:	tab-delimited, sent to stdout by default
 	Columns 2-6 are counts of 53, 5X, X3, 50, and 03 reads for the correct (annotated) strand
 	Columns 7-11 are similar counts for the incorrect (opposite to annotated) strand
 
+******* NEW: a standalone utility for annotation-agnostic read counting has been added *************
+
+USAGE:
+
+./sjcount -bam <bam_file> -ssj <junctions_output> -ssc <boundaries_output> [-maxlen <max_intron_length>] [-minlen <min_intron_length>] [-margin <length>] [-read1 0/1] [-read2 0/1]
+
+Input:  (1) sorted BAM file
+Options:
+	-maxlen <upper limit on intron length>; 0 = no limit (default=0)
+	-minlen <lower limit on intron length>; 0 = no limit (default=50)
+	-margin <length> minimum number of flanking nucleotides in the read in order to support SJ or EB, (default=4)
+	-read1 0/1, reverse complement read1 no/yes (default=1)
+	-read2 0/1, reverse complement read2 no/yes (default=0)
+Output: (1) Junction counts, tab-delimited  (default=stdout)
+	Columns are: chr, begin, end, counts (+strand), counts(-strand)
+	(2) Boundary counts, tab-delimited  (default=stdout)
+	Columns are: chr, position, counts (+strand), counts(-strand)
+
 ================================================================================================================================================
-Comment on the notation:
+Comment on the notation in bam2ssj output:
 	Suppose you have a splice junction between exon boundaries D and A, where D is a donor splice site (5'-SS) and A is an acceptor splice site (3'-SS).
 
 	The number in column 2 (denoted by 53) is the number of reads supporting SJ from D to A.
