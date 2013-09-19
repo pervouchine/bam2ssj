@@ -63,13 +63,14 @@ void update_site(site **ptr, int end, int strand, int count) {
         ptr = &((*ptr)->next);
     }
     if(*ptr != NULL && (*ptr)->pos == end) {
+	(*ptr)->count[strand]+=count;
     }
     else {
         site *next = (*ptr);
         (*ptr) = new site(end);
         (*ptr)->next = next;
+	(*ptr)->count[strand]+=count;
     }
-    (*ptr)->count[strand]+=count;
 }
 
 void update_jnxn(junction **ptr, int beg, int end, int strand, int count) {
@@ -114,8 +115,6 @@ int main(int argc,char* argv[]) {
     int ref_id, ref_id_prev;
     int read_type, mapped_strand;
     int flag;
-
-    int output_strand[2] = {1, -1};
 
     int max_intron_length = 0;
     int min_intron_length = 50;
@@ -295,8 +294,9 @@ int main(int argc,char* argv[]) {
 		case BAM_CDEL:		pos += offset;	// deletion from the reference (technically the same as 'N') pointer moves
                                         break;
                 case BAM_CREF_SKIP:     pos += offset;
-					if(prev_pos - beg < margin) break;
-					if(end - pos + 1 < margin) break;
+					if(i==0 || i==c->n_cigar) break;
+					if(cigar[i-1] & 0x0F !=BAM_CMATCH || cigar[i+1] & 0x0F != BAM_CMATCH) break;
+					if((cigar[i-1] >> 4) < margin || (cigar[i+1] >> 4) < margin) break;
 					if(offset < min_intron_length && min_intron_length > 0) continue;
 					if(offset > max_intron_length && max_intron_length > 0) break;
 					update_jnxn(curr_junction[ref_id], prev_pos - 1, pos, mapped_strand, 1);
