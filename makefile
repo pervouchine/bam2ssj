@@ -3,7 +3,7 @@ GCC=g++
 
 .PHONY: all
 
-all: bam2ssj sjcount
+all: bam2ssj
 
 EXPORT = bam2ssj-dp-1.6
 
@@ -38,9 +38,6 @@ list.o : list.c list.h
 bam2ssj:	bam2ssj.c progressbar.o list.o $(SAMDIR)libbam.a
 	$(GCC) -I $(SAMDIR) bam2ssj.c progressbar.o list.o $(SAMDIR)libbam.a -lz -o bam2ssj
 
-sjcount : sjcount.c progressbar.o $(SAMDIR)libbam.a
-	$(GCC) -I $(SAMDIR) sjcount.c progressbar.o $(SAMDIR)libbam.a -lz -o sjcount
-
 clean:
-	rm -f -r progressbar.o list.o bam2ssj sjcount
+	rm -f -r progressbar.o list.o bam2ssj
 
