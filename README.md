@@ -1,3 +1,3 @@
 <h2><b>The support for bam2ssj is discontinued.
-Please use sjcount package https://github.com/pervouchine/sjcount
+Please use IPSA package https://github.com/pervouchine/ipsa
 </b></h2>
